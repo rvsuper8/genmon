@@ -124,5 +124,70 @@ alt="Genmon Demo" width="240" height="180" border="10" /></a>
 * [Setup using Genmon and Pintsize.me](https://www.yourwarrantyisvoid.com/2022/02/15/generators-and-open-source-part-2-always-a-better-mousetrap/)
 * [Another Pintsize.me setup](https://blog.networkprofile.org/monitoring-generac-generator-with-raspberry-pi-and-om3-fiber/)
 
+# Deployment Notes (Raspberry Pi 4 / Debian Trixie)
+
+## WiFi Setup for Multiple Access Points
+
+If your generator is located between several WiFi access points, you can configure NetworkManager to save profiles for all of them. The RPi will automatically connect to the strongest available AP:
+
+```bash
+# Connect to each AP to save its profile (repeat for each SSID)
+sudo nmcli dev wifi connect 'YourSSID' password 'YourPassword' ifname wlan1
+
+# Verify saved connections
+nmcli -t -f NAME,TYPE con show | grep wireless
+
+# All saved profiles have autoconnect enabled by default,
+# so NetworkManager will pick the strongest signal automatically.
+```
+
+**Note:** On newer Raspberry Pi OS (Debian Trixie / Bookworm), networking is managed by **NetworkManager** (`nmcli`), not `wpa_supplicant` directly.
+
+## Static IP via DHCP Reservation
+
+If you need a static IP on the WiFi interface (e.g. wlan1), configure a DHCP reservation on your router rather than setting a static IP in the Pi's network config. This ensures the IP persists across AP changes.
+
+## OpenWeatherMap Integration
+
+Genmon supports weather display via the OpenWeatherMap API using the `pyowm` library.
+
+**Setup:**
+1. Get a free API key from [openweathermap.org](https://openweathermap.org/appid)
+2. In genmon settings, set your API key and location (zip code like `28071` or city name like `Gold Hill,NC,US`)
+3. New API keys can take **up to 2 hours** to activate on OpenWeatherMap's backend
+
+**Known Issue (Python 3.13 / Debian Trixie):** The `setuptools` package v82+ removed `pkg_resources`, which `pyowm` v2.10 depends on. If you see `No module named 'pkg_resources'` in the genmon log, downgrade setuptools in the genmon virtual environment:
+
+```bash
+sudo /home/<user>/genmon/genenv/bin/pip install 'setuptools<71'
+```
+
+Then restart genmon:
+```bash
+sudo /home/<user>/genmon/genenv/bin/python /home/<user>/genmon/genloader.py -r
+```
+
+## Email Notifications with Gmail
+
+Gmail with 2-factor authentication requires an **App Password** instead of your regular password:
+
+1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+2. Create an app password named "genmon"
+3. Use the 16-character password in genmon's email settings
+
+## HTTPS / SSL
+
+Genmon supports self-signed certificates (`usehttps = true`, `useselfsignedcert = True` in genmon.conf). When enabled, the web UI moves from `http://<ip>:8000` to `https://<ip>:443`.
+
+For a trusted certificate without browser warnings, consider using **Tailscale** which provides free HTTPS certificates for devices on your tailnet via `tailscale cert`.
+
+## Installing Tailscale
+
+Tailscale is not in the default Debian/Raspbian repos. Use their official install script:
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
 # Documentation
 * [Genmon Project Wiki](https://github.com/jgyates/genmon/wiki)

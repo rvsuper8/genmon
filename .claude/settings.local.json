@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:pintsize.me)",
+      "WebFetch(domain:www.generac.com)",
+      "WebSearch"
+    ]
+  }
+}
